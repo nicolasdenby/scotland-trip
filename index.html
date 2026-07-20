@@ -225,6 +225,7 @@
         {"name": "Kinneuchar Inn", "sub": "Sat 7pm · Kilconquhar", "phone": "01333 340377", "mapq": "Kinneuchar Inn, Main Street, Kilconquhar KY9 1LF", "url": "https://kinneucharinn.com/"},
         {"name": "The Crusoe", "sub": "Sat music · Lower Largo", "phone": "01333 406775", "mapq": "The Crusoe, 2 Main Street, Lower Largo, Leven KY8 6BT", "url": "https://thecrusoe.com/whats-on/"},
         {"name": "Loch Leven's Larder", "sub": "Sun lunch · Kinross", "phone": "01592 841000", "mapq": "Loch Leven's Larder, Channel Farm, Kinross KY13 9HD", "url": "https://www.lochlevenslarder.com/"},
+        {"name": "The Boar's Head", "sub": "Sun roast · Auchtermuchty (Nina's pick)", "phone": "01337 258153", "mapq": "The Boar's Head, 23 High Street, Auchtermuchty KY14 7AP", "url": "https://www.theboarsheadfife.co.uk/menu"},
         {"name": "Whiski Bar", "sub": "Fri music · Royal Mile", "phone": "0131 556 3095", "mapq": "Whiski Bar, 119 High Street, Edinburgh EH1 1SG", "url": "https://www.whiskibar.co.uk/"},
         {"name": "Kings Arms", "sub": "Fri music · Tollcross", "phone": "0131 229 6085", "mapq": "Kings Arms, 45 Home Street, Edinburgh EH3 9JP", "url": ""},
         {"name": "The Ensign Ewart", "sub": "Tattoo march spot · Lawnmarket (walk from dinner)", "phone": "", "mapq": "The Ensign Ewart, 521 Lawnmarket, Edinburgh EH1 2PE", "url": "", "walk": true},
@@ -287,7 +288,8 @@
         {"text": "Sunrise Bakehouse, Burntisland - top-rated sourdough, about 2 miles west along the coast path.", "mapq": "Sunrise Bakehouse, 156 High Street, Burntisland", "walk": true, "sub": true},
         {"text": "Drive to Loch Leven. Full Heritage Trail loop is ~21km (13 mi), flat, a half-day. For a shorter version walk the Vane Farm (RSPB) section and drive between points.", "mapq": "Loch Leven Heritage Trail, Kinross"},
         {"text": "Lunch at Loch Leven's Larder, on the trail.", "phone": "01592 841000", "mapq": "Loch Leven's Larder, Channel Farm, Kinross KY13 9HD", "url": "https://www.lochlevenslarder.com/"},
-        {"text": "Dinner at the Dairy, or a local spot."}
+        {"text": "Sunday roast option: The Boar's Head, Auchtermuchty (Nina's pick), ~15 min from Loch Leven. Sunday food is 12 to 5pm, so time the hike to arrive before 5.", "phone": "01337 258153", "mapq": "The Boar's Head, 23 High Street, Auchtermuchty KY14 7AP", "url": "https://www.theboarsheadfife.co.uk/menu"},
+        {"text": "Otherwise dinner at the Dairy, or a local spot."}
       ]
     },
     {
@@ -307,6 +309,15 @@
 <script>
 (function(){
   "use strict";
+
+  // ============ SHARED SYNC (Supabase) ============
+  // Paste your two values between the quotes, then re-upload this file.
+  // Leave them blank and the planner still works (saves on this device only).
+  var SUPABASE_URL = "https://wmnofxxqnogdiehkatok.supabase.co";   // e.g. https://abcdefgh.supabase.co
+  var SUPABASE_KEY = "sb_publishable_5qUIAhlf2zsdfg_iLBPJ5g_7NA5XXMP";   // your anon public key (long string)
+  // ================================================
+  var CLOUD = !!(SUPABASE_URL && SUPABASE_KEY);
+
   var ICONS = {travel:"🚆", flight:"✈️", car:"🚗", stay:"🛏️", food:"🍽️", day:"📅", info:"📋"};
   var CATS = [["travel","Train"],["flight","Flight"],["car","Car hire"],["stay","Stay"],["food","Food / reservations"],["day","Day"],["info","Other"]];
 
@@ -327,6 +338,47 @@
   function save(){
     STATE.updated = Date.now();
     try { localStorage.setItem(KEY, JSON.stringify(STATE)); } catch(e){}
+    cloudPush();
+  }
+
+  // ---- shared cloud sync (Supabase REST) ----
+  function rowId(){ return STATE.id || "trip"; }
+  function supaHeaders(){
+    return { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY,
+             "Content-Type": "application/json" };
+  }
+  var pushTimer = null;
+  function cloudPush(){
+    if (!CLOUD) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(doPush, 700);
+  }
+  function doPush(){
+    if (!CLOUD) return;
+    var h = supaHeaders();
+    h["Prefer"] = "resolution=merge-duplicates,return=minimal";
+    fetch(SUPABASE_URL + "/rest/v1/trips", {
+      method: "POST", headers: h,
+      body: JSON.stringify({ id: rowId(), data: STATE })
+    }).catch(function(){});
+  }
+  function syncFromCloud(){
+    if (!CLOUD) return;
+    fetch(SUPABASE_URL + "/rest/v1/trips?select=data&id=eq." + encodeURIComponent(rowId()), {
+      headers: supaHeaders()
+    }).then(function(r){ return r.ok ? r.json() : null; }).then(function(rows){
+      if (!rows) return;
+      if (!rows.length) { doPush(); return; }        // seed the shared copy
+      var remote = rows[0].data;
+      if (remote && (remote.updated||0) > (STATE.updated||0) && !editing) {
+        var openT = {}; (STATE.sections||[]).forEach(function(s){ if (s.open) openT[s.title] = 1; });
+        STATE = remote;
+        (STATE.sections||[]).forEach(function(s){ s.open = !!openT[s.title]; });
+        try { localStorage.setItem(KEY, JSON.stringify(STATE)); } catch(e){}
+        render();
+        document.querySelectorAll("[data-edit]").forEach(function(el){ el.contentEditable = false; });
+      }
+    }).catch(function(){});
   }
   function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function mapsUrl(q, walk){ return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(q) + (walk ? "&travelmode=walking" : ""); }
@@ -613,6 +665,13 @@
   }
 
   render();
+
+  if (CLOUD) {
+    syncFromCloud();
+    setInterval(syncFromCloud, 6000);
+    window.addEventListener("focus", syncFromCloud);
+    document.addEventListener("visibilitychange", function(){ if (!document.hidden) syncFromCloud(); });
+  }
 })();
 </script>
 </body>
