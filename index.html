@@ -535,7 +535,7 @@
     var tools = el("div", "sectools");
     tools.innerHTML =
       '<button class="donebtn" data-action="done-edit">✓ Done</button>'+
-      '<button class="add" data-action="add-note" data-sec="'+i+'">+ note</button>'+
+      '<button class="add" data-action="add-note" data-sec="'+i+'">+ bullet</button>'+
       '<button class="add" data-action="add-field" data-sec="'+i+'">+ detail</button>'+
       '<button class="add" data-action="add-task" data-sec="'+i+'">+ checklist item</button>'+
       '<button class="add" data-action="add-place" data-sec="'+i+'">+ place (call/directions)</button>'+
@@ -619,7 +619,7 @@
     switch(act){
       case "add-field": s.fields = s.fields||[]; s.fields.push({k:"Detail", v:""}); s.open=true; break;
       case "del-field": s.fields.splice(+a.dataset.j,1); break;
-      case "add-note": s.notes = s.notes||[]; s.notes.push("New note"); s.open=true; break;
+      case "add-note": s.notes = s.notes||[]; s.notes.push("New bullet"); s.open=true; break;
       case "del-note": s.notes.splice(+a.dataset.j,1); break;
       case "add-task": s.tasks = s.tasks||[]; s.tasks.push({text:"New item", done:false, u:""}); s.open=true; break;
       case "del-task": s.tasks.splice(+a.dataset.j,1); break;
