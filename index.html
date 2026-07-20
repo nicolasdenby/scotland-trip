@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trip Planner</title>
+<style>
+  :root{
+    --navy:#1f3864; --accent:#2e74b5; --ink:#20242b; --grey:#6b7280;
+    --line:#e5e7eb; --bg:#f4f6f9; --card:#ffffff; --good:#15803d; --warn:#b45309;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;-webkit-text-size-adjust:100%}
+  .wrap{max-width:840px;margin:0 auto;padding:18px 16px 80px}
+
+  header.hero{background:linear-gradient(135deg,#1f3864,#2e74b5);color:#fff;border-radius:16px;
+    padding:22px 22px 20px;box-shadow:0 6px 20px rgba(31,56,100,.18)}
+  .hero h1{margin:0;font-size:26px;font-weight:800;letter-spacing:.2px}
+  .hero .sub{opacity:.92;font-size:15px;margin-top:4px}
+  .hero .who{opacity:.8;font-size:13px;margin-top:6px}
+  header.hero [contenteditable]{outline:none}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px;position:sticky;top:0;z-index:20;
+    background:var(--bg);padding:8px 0}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;
+    padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn.primary:hover{background:#255f97;color:#fff}
+  .btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .btn.ghostwarn:hover{border-color:#b45309;color:#b45309}
+
+  .hint{font-size:12.5px;color:var(--grey);margin:2px 2px 14px}
+
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:12px 0;overflow:hidden;
+    box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .sec-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none;
+    border-left:5px solid var(--accent)}
+  .sec-head .ico{font-size:20px;width:26px;text-align:center;flex:none}
+  .sec-head .titles{flex:1;min-width:0}
+  .sec-head .t{font-weight:700;font-size:16px}
+  .sec-head .m{font-size:12.5px;color:var(--grey)}
+  .sec-head .chev{transition:transform .2s ease;color:var(--grey);flex:none;font-size:14px}
+  .sec.open .chev{transform:rotate(90deg)}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;flex:none}
+  .badge.booked{background:#e7f3ea;color:var(--good)}
+  .badge.tobook{background:#fdf1e2;color:var(--warn)}
+  .badge.plan{background:#e9f0f8;color:var(--accent)}
+
+  .sec-body{display:none;padding:4px 16px 16px 16px}
+  .sec.open .sec-body{display:block}
+
+  .rows{margin:6px 0}
+  .row{display:flex;gap:10px;padding:5px 0;border-bottom:1px dashed #eef0f3;font-size:14.5px}
+  .row:last-child{border-bottom:0}
+  .row .k{font-weight:600;min-width:96px;color:#374151;flex:none}
+  .row .v{flex:1}
+  .notes{margin:8px 0 2px;padding:0;list-style:none}
+  .notes li{position:relative;padding:5px 0 5px 20px;font-size:14.5px}
+  .notes li:before{content:"";position:absolute;left:3px;top:12px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .notes li.subnote{margin-left:24px}
+  .notes li.subnote:before{background:transparent;border:1.5px solid var(--accent);width:5px;height:5px}
+  .tasks{margin:8px 0 2px;padding:0;list-style:none}
+  .task{display:flex;align-items:flex-start;gap:10px;padding:6px 0;font-size:14.5px}
+  .task input{margin-top:3px;width:17px;height:17px;flex:none;accent-color:var(--accent);cursor:pointer}
+  .task.done .task-text{text-decoration:line-through;color:var(--grey)}
+  .links{margin:8px 0 0}
+  .links a{color:var(--accent);font-size:13.5px;margin-right:14px;text-decoration:none;border-bottom:1px solid #cdddef}
+  .links a:hover{border-color:var(--accent)}
+
+  /* places: tap to call / directions */
+  .place{padding:11px 0;border-bottom:1px solid #eef0f3}
+  .place:last-child{border-bottom:0}
+  .place .pn{font-weight:700;font-size:15px}
+  .place .ps{font-size:12.5px;color:var(--grey);margin:1px 0 7px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .actbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:13.5px;font-weight:700;
+    padding:9px 15px;border-radius:11px;border:1px solid transparent;line-height:1}
+  .actbtn.call{background:#e7f3ea;color:#15803d}
+  .actbtn.call:hover{background:#d5e9da}
+  .actbtn.dir{background:#e9f0f8;color:#255f97}
+  .actbtn.dir:hover{background:#d9e6f4}
+  .actbtn.web{background:#f1f3f6;color:#475569}
+  .actbtn.web:hover{background:#e6e9ee}
+  .place .pedit{display:none}
+  body.editing .place .pedit{display:block}
+  body.editing .place .pview{display:none}
+  .place .pedit .row .k{min-width:82px}
+  /* inline sub-actions under a day bullet */
+  .subacts{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}
+  .actbtn.sm{padding:6px 11px;font-size:12.5px;border-radius:9px}
+  body.editing .subacts{display:none}
+
+  /* edit affordances */
+  [contenteditable]{outline:none}
+  body.editing [data-edit]{background:#fbfdff;border:1px dashed #cfe0f2;border-radius:6px;padding:2px 6px;min-width:20px}
+  body.editing [data-edit]:focus{border-color:var(--accent);background:#fff}
+  .del,.add,.mv{border:none;background:#f1f3f6;color:#64748b;border-radius:7px;cursor:pointer;font-size:12px;
+    padding:3px 8px;font-weight:600}
+  .del:hover{background:#fde2e2;color:#b91c1c}
+  .add:hover,.mv:hover{background:#e4edf7;color:var(--accent)}
+  .rowtools,.sectools{display:none;gap:6px;flex-wrap:wrap}
+  body.editing .rowtools{display:inline-flex}
+  body.editing .sectools{display:flex;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);align-items:center}
+  .sectools .grow{flex:1}
+  .catpick{font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;color:#374151}
+  .del-x{margin-left:6px}
+  body:not(.editing) .del,body:not(.editing) .add,body:not(.editing) .mv,
+  body:not(.editing) .catpick,body:not(.editing) .del-x{display:none}
+
+  footer{color:var(--grey);font-size:12px;text-align:center;margin-top:26px}
+
+  @media print{
+    .toolbar,.hint,.sectools,.del,.add,.mv{display:none!important}
+    .sec-body{display:block!important}
+    body{background:#fff}
+    .sec{break-inside:avoid;box-shadow:none}
+    header.hero{box-shadow:none;color:#1f3864;background:#fff;border:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1 data-edit data-field="title">Trip</h1>
+    <div class="sub" data-edit data-field="subtitle">Dates</div>
+    <div class="who" data-edit data-field="who">Travellers</div>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn" id="btn-edit">✏️ Edit</button>
+    <button class="btn" data-action="add-day">➕ Add day</button>
+    <button class="btn" data-action="add-section">➕ Add section</button>
+    <button class="btn primary" data-action="download">⬇️ Download copy</button>
+    <button class="btn" data-action="print">🖨️ Print</button>
+    <button class="btn ghostwarn" data-action="reset">✨ New blank trip</button>
+  </div>
+  <div class="hint" id="hint">Tap a section to open it. Turn on <b>Edit</b> to change anything. Tick reservations as you book them. Your changes save automatically on this device; use <b>Download copy</b> to share the updated page with each other.</div>
+
+  <div id="app"></div>
+
+  <footer>Living trip planner · duplicate the downloaded file for your next holiday.</footer>
+</div>
+
+<script id="trip-data" type="application/json">
+{
+  "id": "scotland-2026",
+  "updated": 0,
+  "title": "Scotland: Edinburgh & Fife",
+  "subtitle": "Thu 27 to Mon 31 August 2026",
+  "who": "Nick & Nina · nicolas@slevenfitness.com · ninahenderson2@hotmail.co.uk",
+  "sections": [
+    {
+      "cat": "travel", "title": "Train · London ⇄ Edinburgh", "meta": "LNER · Advance Single", "badge": "booked", "open": true,
+      "fields": [
+        {"k": "Outbound", "v": "Thu 27 Aug · Kings Cross 18:30 → Edinburgh Waverley 22:40"},
+        {"k": "Seats", "v": "Coach A, 11 & 14 (window)"},
+        {"k": "Return", "v": "Mon 31 Aug · Edinburgh Waverley 18:30 → Kings Cross 23:09"},
+        {"k": "Seats", "v": "Coach H, 49 (window) & 50 (aisle)"},
+        {"k": "Paid", "v": "£293.80 for 2"}
+      ],
+      "notes": [], "tasks": [],
+      "links": [{"t": "Manage booking (Trainline)", "u": "https://www.thetrainline.com/my-account/bookings/fcf609d3-690b-4564-9d23-85f4d8db3319"}]
+    },
+    {
+      "cat": "car", "title": "Car hire · Drivalia", "meta": "Peugeot 2008 or similar, manual", "badge": "booked", "open": false,
+      "fields": [
+        {"k": "Pick up", "v": "Sat 29 Aug 08:00 (booked, flexible)"},
+        {"k": "Drop off", "v": "Mon 31 Aug 17:30"},
+        {"k": "Location", "v": "Omni Q-Park, Greenside Row, EH1 3AN, level -4"},
+        {"k": "Booking", "v": "713863272 · driver Nicolas Denby"},
+        {"k": "Desk", "v": "+44 131 202 1717"},
+        {"k": "Paid", "v": "£110.21"}
+      ],
+      "notes": ["Drop at 17:30 leaves about 40 min for the 18:30 train (10 to 12 min walk to Waverley). Be fully packed and do Leith on the way in, not at the last minute. 17:00 is the safer number."],
+      "tasks": [], "links": []
+    },
+    {
+      "cat": "stay", "title": "Stay · Edinburgh (Royal Mile)", "meta": "Host Anne · self check-in", "badge": "booked", "open": false,
+      "fields": [
+        {"k": "Check in", "v": "Thu 27 Aug 15:00"},
+        {"k": "Check out", "v": "Sat 29 Aug 11:00"},
+        {"k": "Address", "v": "Lady Stair's Close, EH1 2PA"},
+        {"k": "Confirmation", "v": "HM5JXMX3N8"},
+        {"k": "Host", "v": "+44 7951 317877 (wifi details 48h before)"}
+      ],
+      "notes": [], "tasks": [], "links": []
+    },
+    {
+      "cat": "stay", "title": "Stay · Fife (The Dairy)", "meta": "Banchory Farm", "badge": "booked", "open": false,
+      "fields": [
+        {"k": "Check in", "v": "Sat 29 Aug"},
+        {"k": "Check out", "v": "Mon 31 Aug"}
+      ],
+      "notes": [], "tasks": [],
+      "links": [{"t": "banchoryfarm.co.uk", "u": "https://www.banchoryfarm.co.uk/the-dairy"}]
+    },
+    {
+      "cat": "food", "title": "Reservations to book", "meta": "Tick as you go", "badge": "tobook", "open": true,
+      "fields": [], "notes": [],
+      "tasks": [
+        {"text": "Little Capo · Fri 28 Aug eve, 2 people (books ~1 month ahead, reminder set 28 Jul)", "done": false, "u": ""},
+        {"text": "The Wee Restaurant · Sat 29 Aug lunch, North Queensferry", "done": false, "u": "https://theweerestaurant.co.uk/"},
+        {"text": "Kinneuchar Inn · Sat 29 Aug dinner 7pm", "done": false, "u": "https://kinneucharinn.com/"}
+      ],
+      "links": []
+    },
+    {
+      "cat": "food", "title": "Places · tap to call or drive", "meta": "Every number & directions in one place", "badge": "", "open": true,
+      "fields": [], "notes": [], "tasks": [], "links": [],
+      "places": [
+        {"name": "Little Capo", "sub": "Fri dinner · New Town", "phone": "+44 131 560 2909", "mapq": "Little Capo, 18 Howe Street, Edinburgh EH3 6TG", "url": "https://www.littlecapo.com/"},
+        {"name": "The Wee Restaurant", "sub": "Sat lunch · North Queensferry", "phone": "01383 616263", "mapq": "The Wee Restaurant, 17 Main Street, North Queensferry KY11 1JG", "url": "https://theweerestaurant.co.uk/book-now"},
+        {"name": "Kinneuchar Inn", "sub": "Sat 7pm · Kilconquhar", "phone": "01333 340377", "mapq": "Kinneuchar Inn, Main Street, Kilconquhar KY9 1LF", "url": "https://kinneucharinn.com/"},
+        {"name": "The Crusoe", "sub": "Sat music · Lower Largo", "phone": "01333 406775", "mapq": "The Crusoe, 2 Main Street, Lower Largo, Leven KY8 6BT", "url": "https://thecrusoe.com/whats-on/"},
+        {"name": "Loch Leven's Larder", "sub": "Sun lunch · Kinross", "phone": "01592 841000", "mapq": "Loch Leven's Larder, Channel Farm, Kinross KY13 9HD", "url": "https://www.lochlevenslarder.com/"},
+        {"name": "Whiski Bar", "sub": "Fri music · Royal Mile", "phone": "0131 556 3095", "mapq": "Whiski Bar, 119 High Street, Edinburgh EH1 1SG", "url": "https://www.whiskibar.co.uk/"},
+        {"name": "Kings Arms", "sub": "Fri music · Tollcross", "phone": "0131 229 6085", "mapq": "Kings Arms, 45 Home Street, Edinburgh EH3 9JP", "url": ""},
+        {"name": "The Ensign Ewart", "sub": "Tattoo march spot · Lawnmarket (walk from dinner)", "phone": "", "mapq": "The Ensign Ewart, 521 Lawnmarket, Edinburgh EH1 2PE", "url": "", "walk": true},
+        {"name": "Royal Mile flat (Host Anne)", "sub": "Edinburgh stay", "phone": "+44 7951 317877", "mapq": "Lady Stair's Close, Edinburgh EH1 2PA", "url": ""},
+        {"name": "Banchory Farm · The Dairy", "sub": "Fife stay · Kinghorn", "phone": "07778 551442", "mapq": "Banchory Farm, Kinghorn KY2 5UU", "url": "https://www.banchoryfarm.co.uk/contact"},
+        {"name": "Unit Bakery", "sub": "Sun run · Kinghorn, ~1 mile", "phone": "", "mapq": "Unit Bakery, 60 Strathmore Street, Kinghorn KY3 9UX", "url": "", "walk": true},
+        {"name": "Tornado Bagel", "sub": "Sun run · Kinghorn, bagels & coffee", "phone": "", "mapq": "Tornado Bagel, Kinghorn, Fife", "url": "", "walk": true},
+        {"name": "Sunrise Bakehouse", "sub": "Sun run · Burntisland, ~2 miles coast path", "phone": "", "mapq": "Sunrise Bakehouse, 156 High Street, Burntisland", "url": "", "walk": true},
+        {"name": "Drivalia car hire", "sub": "Pick up & drop off", "phone": "+44 131 202 1717", "mapq": "Omni Q-Park, Greenside Row, Edinburgh EH1 3AN", "url": ""},
+        {"name": "Arthur's Seat", "sub": "Walk · Edinburgh", "phone": "", "mapq": "Arthur's Seat, Holyrood Park, Edinburgh", "url": ""},
+        {"name": "Calton Hill", "sub": "Viewpoint · by the car park", "phone": "", "mapq": "Calton Hill, Edinburgh", "url": ""},
+        {"name": "Loch Leven Heritage Trail", "sub": "Sun hike · Kinross", "phone": "", "mapq": "Loch Leven Heritage Trail, Kinross", "url": ""},
+        {"name": "The Shore, Leith", "sub": "Mon stop", "phone": "", "mapq": "The Shore, Leith, Edinburgh", "url": ""},
+        {"name": "Edinburgh Waverley", "sub": "Train home", "phone": "", "mapq": "Edinburgh Waverley Station", "url": ""}
+      ]
+    },
+    {
+      "cat": "day", "title": "Thursday 27 Aug", "meta": "London → Edinburgh", "badge": "plan", "open": false,
+      "fields": [], "tasks": [], "links": [],
+      "notes": [
+        {"text": "18:30 train from Kings Cross, arrive Waverley 22:40.", "mapq": "Edinburgh Waverley Station"},
+        {"text": "Check in to the Royal Mile flat (contact Anne).", "phone": "+44 7951 317877", "mapq": "Lady Stair's Close, Edinburgh EH1 2PA"}
+      ]
+    },
+    {
+      "cat": "day", "title": "Friday 28 Aug", "meta": "Edinburgh", "badge": "plan", "open": false,
+      "fields": [], "tasks": [], "links": [],
+      "notes": [
+        {"text": "Morning run, then work block."},
+        {"text": "Explore Edinburgh. Good window for Arthur's Seat while you've no bags or car.", "mapq": "Arthur's Seat, Holyrood Park, Edinburgh", "walk": true},
+        {"text": "Evening: dinner at Little Capo.", "phone": "+44 131 560 2909", "mapq": "Little Capo, 18 Howe Street, Edinburgh EH3 6TG", "url": "https://www.littlecapo.com/"},
+        {"text": "Tattoo pipes & drums march off the castle and down the Lawnmarket about 22:30. Watch from the Castlehill end near The Ensign Ewart, right by the flat. Fri 28 is your night; last night is Sat 29 when you're in Fife.", "mapq": "The Ensign Ewart, 521 Lawnmarket, Edinburgh EH1 2PE", "walk": true},
+        {"text": "Live music: Whiski Bar, Royal Mile.", "phone": "0131 556 3095", "mapq": "Whiski Bar, 119 High Street, Edinburgh EH1 1SG", "url": "https://www.whiskibar.co.uk/"},
+        {"text": "Or Kings Arms, Tollcross.", "phone": "0131 229 6085", "mapq": "Kings Arms, 45 Home Street, Edinburgh EH3 9JP"}
+      ]
+    },
+    {
+      "cat": "day", "title": "Saturday 29 Aug", "meta": "Edinburgh → Fife", "badge": "plan", "open": false,
+      "fields": [], "tasks": [], "links": [],
+      "notes": [
+        {"text": "Check out by 11:00. Pick up car at the Omni (push later than 08:00 if you want a slow start).", "phone": "+44 131 202 1717", "mapq": "Omni Q-Park, Greenside Row, Edinburgh EH1 3AN"},
+        {"text": "Morning options, pick one:"},
+        {"text": "Calton Hill, 5 min from the car park, big views.", "mapq": "Calton Hill, Edinburgh", "walk": true, "sub": true},
+        {"text": "Arthur's Seat, the proper climb if you start early.", "mapq": "Arthur's Seat, Holyrood Park, Edinburgh", "walk": true, "sub": true},
+        {"text": "Dean Village & Water of Leith, gentle and pretty.", "mapq": "Dean Village, Edinburgh", "walk": true, "sub": true},
+        {"text": "Three Bridges viewpoint at North Queensferry, right by lunch.", "mapq": "Three Bridges viewpoint, North Queensferry", "sub": true},
+        {"text": "Lunch: The Wee Restaurant, North Queensferry.", "phone": "01383 616263", "mapq": "The Wee Restaurant, 17 Main Street, North Queensferry KY11 1JG", "url": "https://theweerestaurant.co.uk/book-now"},
+        {"text": "Check in to Banchory Farm, Kinghorn. Coastal walk after.", "phone": "07778 551442", "mapq": "Banchory Farm, Kinghorn KY2 5UU"},
+        {"text": "Dinner: Kinneuchar Inn, 7pm.", "phone": "01333 340377", "mapq": "Kinneuchar Inn, Main Street, Kilconquhar KY9 1LF", "url": "https://kinneucharinn.com/"},
+        {"text": "Music after at the Crusoe, Lower Largo.", "phone": "01333 406775", "mapq": "The Crusoe, 2 Main Street, Lower Largo, Leven KY8 6BT", "url": "https://thecrusoe.com/whats-on/"}
+      ]
+    },
+    {
+      "cat": "day", "title": "Sunday 30 Aug", "meta": "Fife & Loch Leven", "badge": "plan", "open": false,
+      "fields": [], "tasks": [], "links": [],
+      "notes": [
+        {"text": "Morning run to the bakery, three options:"},
+        {"text": "Unit Bakery, Strathmore Street, Kinghorn - artisan bakery, about 1 mile into town.", "mapq": "Unit Bakery, 60 Strathmore Street, Kinghorn KY3 9UX", "walk": true, "sub": true},
+        {"text": "Tornado Bagel, Kinghorn - bagels and coffee, same direction.", "mapq": "Tornado Bagel, Kinghorn, Fife", "walk": true, "sub": true},
+        {"text": "Sunrise Bakehouse, Burntisland - top-rated sourdough, about 2 miles west along the coast path.", "mapq": "Sunrise Bakehouse, 156 High Street, Burntisland", "walk": true, "sub": true},
+        {"text": "Drive to Loch Leven. Full Heritage Trail loop is ~21km (13 mi), flat, a half-day. For a shorter version walk the Vane Farm (RSPB) section and drive between points.", "mapq": "Loch Leven Heritage Trail, Kinross"},
+        {"text": "Lunch at Loch Leven's Larder, on the trail.", "phone": "01592 841000", "mapq": "Loch Leven's Larder, Channel Farm, Kinross KY13 9HD", "url": "https://www.lochlevenslarder.com/"},
+        {"text": "Dinner at the Dairy, or a local spot."}
+      ]
+    },
+    {
+      "cat": "day", "title": "Monday 31 Aug", "meta": "Fife → Edinburgh → home", "badge": "plan", "open": false,
+      "fields": [], "tasks": [], "links": [],
+      "notes": [
+        {"text": "Slow morning, then drive back to Edinburgh."},
+        {"text": "Do Leith on the way in (early afternoon) so the car is clear well before the train.", "mapq": "The Shore, Leith, Edinburgh"},
+        {"text": "Drop car ~17:30 at the Omni. Be packed and station-ready.", "phone": "+44 131 202 1717", "mapq": "Omni Q-Park, Greenside Row, Edinburgh EH1 3AN"},
+        {"text": "18:30 train home, arrive Kings Cross 23:09.", "mapq": "Edinburgh Waverley Station"}
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+(function(){
+  "use strict";
+  var ICONS = {travel:"🚆", flight:"✈️", car:"🚗", stay:"🛏️", food:"🍽️", day:"📅", info:"📋"};
+  var CATS = [["travel","Train"],["flight","Flight"],["car","Car hire"],["stay","Stay"],["food","Food / reservations"],["day","Day"],["info","Other"]];
+
+  var STATE = load();
+  var KEY = "tripplanner:" + (STATE.id || "trip");
+  var app = document.getElementById("app");
+  var editing = false;
+
+  function load(){
+    var embedded = JSON.parse(document.getElementById("trip-data").textContent);
+    var k = "tripplanner:" + (embedded.id || "trip");
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(k)); } catch(e){}
+    if (saved && (saved.updated||0) >= (embedded.updated||0)) return saved;
+    return embedded;
+  }
+  function save(){
+    STATE.updated = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(STATE)); } catch(e){}
+  }
+  function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function mapsUrl(q, walk){ return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(q) + (walk ? "&travelmode=walking" : ""); }
+
+  function headerFields(){
+    ["title","subtitle","who"].forEach(function(f){
+      var el = document.querySelector('[data-field="'+f+'"]');
+      if (el) el.textContent = STATE[f] || "";
+    });
+  }
+
+  function render(){
+    headerFields();
+    app.innerHTML = "";
+    STATE.sections.forEach(function(sec, i){
+      app.appendChild(renderSection(sec, i));
+    });
+  }
+
+  function el(tag, cls, html){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+
+  function renderSection(sec, i){
+    var wrap = el("div", "sec" + (sec.open ? " open" : ""));
+    wrap.dataset.sec = i;
+
+    var head = el("div", "sec-head");
+    head.dataset.action = "toggle";
+    head.innerHTML =
+      '<span class="ico">'+ (ICONS[sec.cat]||ICONS.info) +'</span>'+
+      '<div class="titles">'+
+        '<div class="t" data-edit data-sec="'+i+'" data-k="title">'+ esc(sec.title) +'</div>'+
+        '<div class="m" data-edit data-sec="'+i+'" data-k="meta">'+ esc(sec.meta||"") +'</div>'+
+      '</div>'+
+      (sec.badge ? '<span class="badge '+sec.badge+'">'+ badgeText(sec.badge) +'</span>' : '')+
+      '<span class="chev">▶</span>';
+    wrap.appendChild(head);
+
+    var body = el("div", "sec-body");
+
+    // places: tap-to-call / directions
+    if (sec.places && sec.places.length){
+      var pw = el("div", "placewrap");
+      sec.places.forEach(function(p, j){
+        var tel = p.phone ? "tel:" + p.phone.replace(/[^+0-9]/g,"") : "";
+        var dir = p.mapq ? "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.mapq) + (p.walk ? "&travelmode=walking" : "") : "";
+        var pl = el("div", "place");
+        pl.innerHTML =
+          '<div class="pview">'+
+            '<div class="pn">'+ esc(p.name) +'</div>'+
+            (p.sub ? '<div class="ps">'+ esc(p.sub) +'</div>' : '')+
+            '<div class="actions">'+
+              (tel ? '<a class="actbtn call" href="'+ tel +'">📞 '+ esc(p.phone) +'</a>' : '')+
+              (dir ? '<a class="actbtn dir" href="'+ dir +'" target="_blank" rel="noopener">📍 Directions</a>' : '')+
+              (p.url ? '<a class="actbtn web" href="'+ esc(p.url) +'" target="_blank" rel="noopener">🔗 Web</a>' : '')+
+            '</div>'+
+          '</div>'+
+          '<div class="pedit">'+
+            '<div class="row"><span class="k">Name</span><span class="v" data-edit data-sec="'+i+'" data-place="'+j+'" data-k="name">'+ esc(p.name) +'</span></div>'+
+            '<div class="row"><span class="k">Note</span><span class="v" data-edit data-sec="'+i+'" data-place="'+j+'" data-k="sub">'+ esc(p.sub||"") +'</span></div>'+
+            '<div class="row"><span class="k">Phone</span><span class="v" data-edit data-sec="'+i+'" data-place="'+j+'" data-k="phone">'+ esc(p.phone||"") +'</span></div>'+
+            '<div class="row"><span class="k">Directions</span><span class="v" data-edit data-sec="'+i+'" data-place="'+j+'" data-k="mapq">'+ esc(p.mapq||"") +'</span></div>'+
+            '<div class="row"><span class="k">Website</span><span class="v" data-edit data-sec="'+i+'" data-place="'+j+'" data-k="url">'+ esc(p.url||"") +'</span> <button class="del" data-action="del-place" data-sec="'+i+'" data-j="'+j+'">remove ✕</button></div>'+
+          '</div>';
+        pw.appendChild(pl);
+      });
+      body.appendChild(pw);
+    }
+
+    // key/value fields
+    if (sec.fields && sec.fields.length || editing){
+      var rows = el("div", "rows");
+      (sec.fields||[]).forEach(function(r, j){
+        var row = el("div", "row");
+        row.innerHTML =
+          '<span class="k" data-edit data-sec="'+i+'" data-row="'+j+'" data-k="k">'+ esc(r.k) +'</span>'+
+          '<span class="v" data-edit data-sec="'+i+'" data-row="'+j+'" data-k="v">'+ esc(r.v) +'</span>'+
+          '<span class="rowtools"><button class="del" data-action="del-field" data-sec="'+i+'" data-j="'+j+'">✕</button></span>';
+        rows.appendChild(row);
+      });
+      body.appendChild(rows);
+    }
+
+    // bullet notes
+    if (sec.notes && sec.notes.length || editing){
+      var ul = el("ul", "notes");
+      (sec.notes||[]).forEach(function(n, j){
+        var isObj = n && typeof n === "object";
+        var text = isObj ? (n.text||"") : n;
+        var liClass = isObj && n.sub ? "subnote" : "";
+        var tel = isObj && n.phone ? "tel:" + n.phone.replace(/[^+0-9]/g,"") : "";
+        var dir = isObj && n.mapq ? mapsUrl(n.mapq, n.walk) : "";
+        var web = isObj && n.url ? n.url : "";
+        var li = el("li", liClass);
+        li.innerHTML =
+          '<span data-edit data-sec="'+i+'" data-note="'+j+'">'+ esc(text) +'</span>'+
+          '<span class="rowtools del-x"><button class="del" data-action="del-note" data-sec="'+i+'" data-j="'+j+'">✕</button></span>'+
+          ((tel||dir||web) ?
+            '<div class="subacts">'+
+              (tel ? '<a class="actbtn call sm" href="'+ tel +'">📞 '+ esc(n.phone) +'</a>' : '')+
+              (dir ? '<a class="actbtn dir sm" href="'+ dir +'" target="_blank" rel="noopener">📍 Directions</a>' : '')+
+              (web ? '<a class="actbtn web sm" href="'+ esc(web) +'" target="_blank" rel="noopener">🔗 Web</a>' : '')+
+            '</div>' : '');
+        ul.appendChild(li);
+      });
+      body.appendChild(ul);
+    }
+
+    // checklist tasks
+    if (sec.tasks && sec.tasks.length || (editing && sec.cat==="food")){
+      var tl = el("ul", "tasks");
+      (sec.tasks||[]).forEach(function(t, j){
+        var li = el("li", "task" + (t.done ? " done" : ""));
+        li.innerHTML =
+          '<input type="checkbox" data-action="toggle-task" data-sec="'+i+'" data-j="'+j+'" '+(t.done?"checked":"")+'>'+
+          '<span class="task-text" data-edit data-sec="'+i+'" data-task="'+j+'" data-k="text">'+ esc(t.text) +'</span>'+
+          (t.u && !editing ? ' <a href="'+esc(t.u)+'" target="_blank" rel="noopener" style="font-size:12.5px;margin-left:4px">↗</a>' : '')+
+          '<span class="rowtools del-x"><button class="del" data-action="del-task" data-sec="'+i+'" data-j="'+j+'">✕</button></span>';
+        tl.appendChild(li);
+      });
+      body.appendChild(tl);
+    }
+
+    // links
+    if (sec.links && sec.links.length){
+      var lk = el("div", "links");
+      sec.links.forEach(function(l, j){
+        if (editing){
+          lk.appendChild(el("div","row",
+            '<span class="k">Link text</span><span class="v" data-edit data-sec="'+i+'" data-link="'+j+'" data-k="t">'+esc(l.t)+'</span>'+
+            '<span class="rowtools"><button class="del" data-action="del-link" data-sec="'+i+'" data-j="'+j+'">✕</button></span>'));
+          lk.appendChild(el("div","row",
+            '<span class="k">URL</span><span class="v" data-edit data-sec="'+i+'" data-link="'+j+'" data-k="u">'+esc(l.u)+'</span>'));
+        } else {
+          var a = el("a"); a.href = l.u; a.target = "_blank"; a.rel = "noopener"; a.textContent = l.t || l.u;
+          lk.appendChild(a);
+        }
+      });
+      body.appendChild(lk);
+    }
+
+    // per-section edit tools
+    var tools = el("div", "sectools");
+    tools.innerHTML =
+      '<button class="add" data-action="add-note" data-sec="'+i+'">+ note</button>'+
+      '<button class="add" data-action="add-field" data-sec="'+i+'">+ detail</button>'+
+      '<button class="add" data-action="add-task" data-sec="'+i+'">+ checklist item</button>'+
+      '<button class="add" data-action="add-place" data-sec="'+i+'">+ place (call/directions)</button>'+
+      '<button class="add" data-action="add-link" data-sec="'+i+'">+ link</button>'+
+      '<select class="catpick" data-action="set-cat" data-sec="'+i+'">'+
+        CATS.map(function(c){return '<option value="'+c[0]+'"'+(sec.cat===c[0]?" selected":"")+'>'+c[1]+'</option>';}).join("")+
+      '</select>'+
+      '<span class="grow"></span>'+
+      '<button class="mv" data-action="up" data-sec="'+i+'">↑</button>'+
+      '<button class="mv" data-action="down" data-sec="'+i+'">↓</button>'+
+      '<button class="del" data-action="del-section" data-sec="'+i+'">Delete section ✕</button>';
+    body.appendChild(tools);
+
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  function badgeText(b){ return b==="booked"?"Booked":b==="tobook"?"To book":b==="plan"?"Plan":b; }
+
+  // ---- editing: write text edits back to state ----
+  document.addEventListener("input", function(e){
+    var t = e.target;
+    // header
+    if (t.dataset && t.dataset.field){ STATE[t.dataset.field] = t.textContent; save(); return; }
+    if (!t.dataset || t.dataset.sec == null) return;
+    var i = +t.dataset.sec, sec = STATE.sections[i];
+    if (!sec) return;
+    if (t.dataset.k === "title" && t.classList.contains("t")){ sec.title = t.textContent; }
+    else if (t.dataset.k === "meta"){ sec.meta = t.textContent; }
+    else if (t.dataset.row != null){ sec.fields[+t.dataset.row][t.dataset.k] = t.textContent; }
+    else if (t.dataset.note != null){ var ni=+t.dataset.note; if (sec.notes[ni] && typeof sec.notes[ni]==="object"){ sec.notes[ni].text = t.textContent; } else { sec.notes[ni] = t.textContent; } }
+    else if (t.dataset.task != null){ sec.tasks[+t.dataset.task].text = t.textContent; }
+    else if (t.dataset.place != null){ sec.places[+t.dataset.place][t.dataset.k] = t.textContent; }
+    else if (t.dataset.link != null){ sec.links[+t.dataset.link][t.dataset.k] = t.textContent; }
+    save();
+  });
+
+  // ---- clicks ----
+  document.addEventListener("click", function(e){
+    var a = e.target.closest("[data-action]");
+    if (!a) return;
+    var act = a.dataset.action;
+
+    if (act === "toggle"){
+      var sec = a.closest(".sec"); var i = +sec.dataset.sec;
+      STATE.sections[i].open = !STATE.sections[i].open;
+      sec.classList.toggle("open"); save(); return;
+    }
+    if (act === "toggle-task"){
+      var i = +a.dataset.sec, j = +a.dataset.j;
+      STATE.sections[i].tasks[j].done = a.checked;
+      a.closest(".task").classList.toggle("done", a.checked); save(); return;
+    }
+
+    // structural (need re-render)
+    var i = a.dataset.sec != null ? +a.dataset.sec : null;
+    var s = i != null ? STATE.sections[i] : null;
+    switch(act){
+      case "add-field": s.fields = s.fields||[]; s.fields.push({k:"Detail", v:""}); s.open=true; break;
+      case "del-field": s.fields.splice(+a.dataset.j,1); break;
+      case "add-note": s.notes = s.notes||[]; s.notes.push("New note"); s.open=true; break;
+      case "del-note": s.notes.splice(+a.dataset.j,1); break;
+      case "add-task": s.tasks = s.tasks||[]; s.tasks.push({text:"New item", done:false, u:""}); s.open=true; break;
+      case "del-task": s.tasks.splice(+a.dataset.j,1); break;
+      case "add-link": s.links = s.links||[]; s.links.push({t:"Link", u:"https://"}); s.open=true; break;
+      case "del-link": s.links.splice(+a.dataset.j,1); break;
+      case "add-place": s.places = s.places||[]; s.places.push({name:"New place", sub:"", phone:"", mapq:"", url:""}); s.open=true; break;
+      case "del-place": s.places.splice(+a.dataset.j,1); break;
+      case "set-cat": return; // handled on change
+      case "up": if(i>0){ STATE.sections.splice(i-1,0,STATE.sections.splice(i,1)[0]); } break;
+      case "down": if(i<STATE.sections.length-1){ STATE.sections.splice(i+1,0,STATE.sections.splice(i,1)[0]); } break;
+      case "del-section": if(confirm("Delete this section?")){ STATE.sections.splice(i,1); } else return; break;
+      case "add-day": STATE.sections.push({cat:"day", title:"New day", meta:"", badge:"plan", open:true, fields:[], notes:["Plan..."], tasks:[], links:[]}); break;
+      case "add-section": STATE.sections.push({cat:"info", title:"New section", meta:"", badge:"", open:true, fields:[{k:"Detail",v:""}], notes:[], tasks:[], links:[]}); break;
+      case "download": return downloadCopy();
+      case "print": window.print(); return;
+      case "reset": return resetTrip();
+      default: return;
+    }
+    save(); render();
+  });
+
+  document.addEventListener("change", function(e){
+    var a = e.target.closest('[data-action="set-cat"]');
+    if (!a) return;
+    STATE.sections[+a.dataset.sec].cat = a.value; save(); render();
+  });
+
+  // edit toggle
+  document.getElementById("btn-edit").addEventListener("click", function(){
+    editing = !editing;
+    document.body.classList.toggle("editing", editing);
+    this.classList.toggle("on", editing);
+    this.innerHTML = editing ? "✓ Done" : "✏️ Edit";
+    document.querySelectorAll("[data-edit]").forEach(function(el){ el.contentEditable = editing; });
+    render();
+    document.querySelectorAll("[data-edit]").forEach(function(el){ el.contentEditable = editing; });
+  });
+
+  function downloadCopy(){
+    save();
+    var snapshot = app.innerHTML;
+    app.innerHTML = "";                       // keep file small
+    document.getElementById("trip-data").textContent = JSON.stringify(STATE, null, 2);
+    var html = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+    app.innerHTML = snapshot;                  // restore view
+    var blob = new Blob([html], {type:"text/html"});
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    var name = (STATE.title||"trip").replace(/[^a-z0-9]+/gi,"_").replace(/^_|_$/g,"");
+    link.href = url; link.download = name + ".html";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  }
+
+  function resetTrip(){
+    if (!confirm("Start a fresh blank trip? Your current trip stays in the file you last downloaded.")) return;
+    STATE = {
+      id: "trip-" + Date.now(),
+      updated: Date.now(),
+      title: "New Trip",
+      subtitle: "Add dates",
+      who: "Add travellers",
+      sections: [
+        {cat:"travel", title:"Travel", meta:"Train / flight", badge:"", open:true, fields:[{k:"Outbound",v:""},{k:"Return",v:""}], notes:[], tasks:[], links:[]},
+        {cat:"car", title:"Car hire", meta:"", badge:"", open:false, fields:[{k:"Pick up",v:""},{k:"Drop off",v:""}], notes:[], tasks:[], links:[]},
+        {cat:"stay", title:"Accommodation", meta:"", badge:"", open:false, fields:[{k:"Check in",v:""},{k:"Check out",v:""},{k:"Address",v:""}], notes:[], tasks:[], links:[]},
+        {cat:"food", title:"Reservations to book", meta:"Tick as you go", badge:"tobook", open:true, fields:[], notes:[], tasks:[{text:"First reservation", done:false, u:""}], links:[]},
+        {cat:"day", title:"Day 1", meta:"", badge:"plan", open:false, fields:[], notes:["Plan..."], tasks:[], links:[]}
+      ]
+    };
+    KEY = "tripplanner:" + STATE.id;
+    save(); render();
+    window.scrollTo(0,0);
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
