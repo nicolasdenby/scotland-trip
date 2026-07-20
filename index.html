@@ -117,6 +117,9 @@
   body.editing .sectools{display:flex;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);align-items:center}
   .sectools .grow{flex:1}
   .catpick{font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;color:#374151}
+  .donebtn{background:var(--good);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-weight:700;font-size:13.5px;cursor:pointer}
+  .donebtn:hover{background:#12692b}
+  body:not(.editing) .donebtn{display:none}
   .del-x{margin-left:6px}
   body:not(.editing) .del,body:not(.editing) .add,body:not(.editing) .mv,
   body:not(.editing) .catpick,body:not(.editing) .del-x{display:none}
@@ -531,6 +534,7 @@
     // per-section edit tools
     var tools = el("div", "sectools");
     tools.innerHTML =
+      '<button class="donebtn" data-action="done-edit">✓ Done</button>'+
       '<button class="add" data-action="add-note" data-sec="'+i+'">+ note</button>'+
       '<button class="add" data-action="add-field" data-sec="'+i+'">+ detail</button>'+
       '<button class="add" data-action="add-task" data-sec="'+i+'">+ checklist item</button>'+
@@ -580,6 +584,14 @@
       var sec = a.closest(".sec"); var i = +sec.dataset.sec;
       STATE.sections[i].open = !STATE.sections[i].open;
       sec.classList.toggle("open"); save(); return;
+    }
+    if (act === "done-edit"){
+      editing = false;
+      document.body.classList.remove("editing");
+      var gbd = document.getElementById("btn-edit"); gbd.classList.remove("on"); gbd.innerHTML = "✏️ Edit";
+      render();
+      document.querySelectorAll("[data-edit]").forEach(function(el){ el.contentEditable = false; });
+      return;
     }
     if (act === "editsec"){
       var esec = a.closest(".sec"); var ei = +esec.dataset.sec;
