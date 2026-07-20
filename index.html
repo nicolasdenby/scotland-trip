@@ -320,8 +320,9 @@
     var k = "tripplanner:" + (embedded.id || "trip");
     var saved = null;
     try { saved = JSON.parse(localStorage.getItem(k)); } catch(e){}
-    if (saved && (saved.updated||0) >= (embedded.updated||0)) return saved;
-    return embedded;
+    var st = (saved && (saved.updated||0) >= (embedded.updated||0)) ? saved : embedded;
+    if (st && st.sections) st.sections.forEach(function(s){ s.open = false; });
+    return st;
   }
   function save(){
     STATE.updated = Date.now();
