@@ -52,6 +52,9 @@
   .sec-head .m{font-size:12.5px;color:var(--grey)}
   .sec-head .chev{transition:transform .2s ease;color:var(--grey);flex:none;font-size:14px}
   .sec.open .chev{transform:rotate(90deg)}
+  .editsec{border:none;background:transparent;cursor:pointer;font-size:15px;opacity:.5;padding:5px 8px;border-radius:8px;flex:none;line-height:1}
+  .editsec:hover,.editsec:active{opacity:1;background:#eef2f7}
+  body.editing .editsec{opacity:1}
   .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;flex:none}
   .badge.booked{background:#e7f3ea;color:var(--good)}
   .badge.tobook{background:#fdf1e2;color:var(--warn)}
@@ -146,7 +149,7 @@
     <button class="btn" data-action="print">🖨️ Print</button>
     <button class="btn ghostwarn" data-action="reset">✨ New blank trip</button>
   </div>
-  <div class="hint" id="hint">Tap a section to open it. Turn on <b>Edit</b> to change anything. Tick reservations as you book them. Your changes save automatically on this device; use <b>Download copy</b> to share the updated page with each other.</div>
+  <div class="hint" id="hint">Tap a section to open it. Tap the <b>✏️</b> on any section to add, edit or remove things there. Tick reservations as you book them. Changes save and sync automatically between you both.</div>
 
   <div id="app"></div>
 
@@ -418,6 +421,7 @@
         '<div class="m" data-edit data-sec="'+i+'" data-k="meta">'+ esc(sec.meta||"") +'</div>'+
       '</div>'+
       (sec.badge ? '<span class="badge '+sec.badge+'">'+ badgeText(sec.badge) +'</span>' : '')+
+      '<button class="editsec" data-action="editsec" title="Edit this section" aria-label="Edit this section">✏️</button>'+
       '<span class="chev">▶</span>';
     wrap.appendChild(head);
 
@@ -572,9 +576,24 @@
     var act = a.dataset.action;
 
     if (act === "toggle"){
+      if (editing && e.target.closest("[data-edit]")) return; // let them type in the title while editing
       var sec = a.closest(".sec"); var i = +sec.dataset.sec;
       STATE.sections[i].open = !STATE.sections[i].open;
       sec.classList.toggle("open"); save(); return;
+    }
+    if (act === "editsec"){
+      var esec = a.closest(".sec"); var ei = +esec.dataset.sec;
+      if (!editing){
+        editing = true;
+        document.body.classList.add("editing");
+        var gb = document.getElementById("btn-edit"); gb.classList.add("on"); gb.innerHTML = "✓ Done";
+      }
+      STATE.sections[ei].open = true;
+      render();
+      document.querySelectorAll("[data-edit]").forEach(function(el){ el.contentEditable = true; });
+      var target = document.querySelector('.sec[data-sec="'+ei+'"]');
+      if (target) target.scrollIntoView({behavior:"smooth", block:"start"});
+      return;
     }
     if (act === "toggle-task"){
       var i = +a.dataset.sec, j = +a.dataset.j;
