@@ -486,7 +486,11 @@
         var li = el("li", liClass);
         li.innerHTML =
           '<span data-edit data-sec="'+i+'" data-note="'+j+'">'+ esc(text) +'</span>'+
-          '<span class="rowtools del-x"><button class="del" data-action="del-note" data-sec="'+i+'" data-j="'+j+'">✕</button></span>'+
+          '<span class="rowtools del-x">'+
+            '<button class="mv" data-action="note-up" data-sec="'+i+'" data-j="'+j+'" title="Move up">▲</button>'+
+            '<button class="mv" data-action="note-down" data-sec="'+i+'" data-j="'+j+'" title="Move down">▼</button>'+
+            '<button class="del" data-action="del-note" data-sec="'+i+'" data-j="'+j+'">✕</button>'+
+          '</span>'+
           ((tel||dir||web) ?
             '<div class="subacts">'+
               (tel ? '<a class="actbtn call sm" href="'+ tel +'">📞 '+ esc(n.phone) +'</a>' : '')+
@@ -621,6 +625,8 @@
       case "del-field": s.fields.splice(+a.dataset.j,1); break;
       case "add-note": s.notes = s.notes||[]; s.notes.push("New bullet"); s.open=true; break;
       case "del-note": s.notes.splice(+a.dataset.j,1); break;
+      case "note-up": { var nu=+a.dataset.j; if(nu>0){ var x=s.notes.splice(nu,1)[0]; s.notes.splice(nu-1,0,x); } break; }
+      case "note-down": { var nd=+a.dataset.j; if(nd<s.notes.length-1){ var y=s.notes.splice(nd,1)[0]; s.notes.splice(nd+1,0,y); } break; }
       case "add-task": s.tasks = s.tasks||[]; s.tasks.push({text:"New item", done:false, u:""}); s.open=true; break;
       case "del-task": s.tasks.splice(+a.dataset.j,1); break;
       case "add-link": s.links = s.links||[]; s.links.push({t:"Link", u:"https://"}); s.open=true; break;
