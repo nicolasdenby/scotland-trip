@@ -42,6 +42,10 @@
 
   .hint{font-size:12.5px;color:var(--grey);margin:2px 2px 14px}
 
+  .grouphead{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--navy);
+    opacity:.72;margin:26px 4px 8px;padding-bottom:6px;border-bottom:2px solid #e3e8ef}
+  #app > .grouphead:first-child{margin-top:6px}
+
   .sec{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:12px 0;overflow:hidden;
     box-shadow:0 1px 3px rgba(0,0,0,.05)}
   .sec-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none;
@@ -396,10 +400,24 @@
     });
   }
 
+  function groupFor(cat){
+    if (cat === "travel" || cat === "flight" || cat === "car") return "Getting there & around";
+    if (cat === "stay") return "Where we're staying";
+    if (cat === "food") return "Reservations & places";
+    if (cat === "day") return "Day by day";
+    return "More";
+  }
+
   function render(){
     headerFields();
     app.innerHTML = "";
+    var lastGroup = null;
     STATE.sections.forEach(function(sec, i){
+      var g = sec.group || groupFor(sec.cat);
+      if (g && g !== lastGroup){
+        app.appendChild(el("div", "grouphead", esc(g)));
+        lastGroup = g;
+      }
       app.appendChild(renderSection(sec, i));
     });
   }
